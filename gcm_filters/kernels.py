@@ -74,9 +74,13 @@ class MOM5LaplacianU(BaseLaplacian):
         np = get_array_module()
         field = np.nan_to_num(field)
         fx = 2 * (np.roll(field, shift=-1, axis=-2) - field)
-        fx /= np.roll(self.dxt, -1, axis=-2) + np.roll(self.dxt, (-1, -1), axis=(0, 1))
+        fx /= np.roll(self.dxt, -1, axis=-2) + np.roll(
+            self.dxt, (-1, -1), axis=(-2, -1)
+        )
         fy = 2 * (np.roll(field, shift=-1, axis=-1) - field)
-        fy /= np.roll(self.dyt, -1, axis=-1) + np.roll(self.dyt, (-1, -1), axis=(0, 1))
+        fy /= np.roll(self.dyt, -1, axis=-1) + np.roll(
+            self.dyt, (-1, -1), axis=(-2, -1)
+        )
         out1 = 0.5 * fx * (self.dyu + np.roll(self.dyu, -1, axis=-2))
         out1 -= (
             0.5 * np.roll(fx, 1, axis=-2) * (self.dyu + np.roll(self.dyu, 1, axis=-2))
