@@ -3,7 +3,6 @@ import xarray as xr
 
 def compute_vorticity(field: np.ndarray, grid: np.ndarray):
     """Uses code by Elizabeth"""
-    grid = grid / 1e4
     u = field['usurf'].values
     v = field['vsurf'].values
     dxt = grid['dxt'].values

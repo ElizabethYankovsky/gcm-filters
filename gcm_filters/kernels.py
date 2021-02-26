@@ -78,7 +78,7 @@ class MOM5LaplacianU(BaseLaplacian):
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
         """We can delete this, leaving it here for now."""
-        
+        field = np.nan_to_num(field)
         fx = np.empty(field.shape)
         fy = np.empty(field.shape)
         filtered_field = np.empty(field.shape)
@@ -112,6 +112,7 @@ class MOM5LaplacianT(BaseLaplacian):
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
+        field = np.nan_to_num(field)
         """Uses code by Elizabeth"""
 
         fx = np.empty(field.shape)
