@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
 build-backend = "setuptools.build_meta"
 
 [tool.isort]
-known_third_party = ["gaussian_filter", "matplotlib", "numpy", "pytest", "read_data", "scipy", "setuptools", "xarray"]
+known_third_party = ["cmocean", "gaussian_filter", "matplotlib", "numpy", "pytest", "read_data", "scipy", "setuptools", "vorticity", "xarray"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
