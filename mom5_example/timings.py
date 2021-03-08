@@ -243,7 +243,7 @@ plt.savefig("/scratch/ag7531/figure_gcm_filters" + str(sigmas[0]) + ".jpg", dpi=
 plt.show()
 
 plt.figure()
-mean_scipy = np.mean(results_scipy[:, 1], axis=-1)
+mean_scipy = np.mean(results_scipy[:, 2, ...], axis=-1)
 mean_lapl_d = np.mean(results_lapl_d, axis=-1)
 mean_lapl2_d = np.mean(results_lapl2_d, axis=-1)
 
