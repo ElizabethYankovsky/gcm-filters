@@ -222,10 +222,10 @@ n_steps_d = (
 n_steps_d = np.log(n_steps_d) / np.log(2) - np.log(n_steps[0]) / np.log(2)
 plt.plot(n_steps_d, mean_lapl_d, "*", markersize=15)
 plt.plot(n_steps_d, mean_lapl2_d, "*", markersize=15)
-
+plt.yscale("log")
 
 plt.ylabel("s")
 plt.xlabel("Number of steps / Number of stds for truncation")
 
-plt.savefig("/scratch/ag7531/figure_gcm_filters.jpg", dpi=400)
+plt.savefig("/scratch/ag7531/figure_gcm_filters" + sigmas[0] + ".jpg", dpi=400)
 plt.show()
