@@ -18,6 +18,9 @@ from gcm_filters import filter
 from gcm_filters.kernels import GridType
 
 
+prop_cycle = plt.rcParams["axes.prop_cycle"]
+colors = prop_cycle.by_key()["color"]
+
 lats = slice(
     -20.0, 70.0
 )  # interested in 0 to 60 but expanding to alleviate boundary effects
@@ -28,11 +31,12 @@ latsT = slice(-20.0, 70.0)
 lonsT = slice(-260.0, -170.0)
 
 
-n_runs = 100
-sigmas = [16]
+n_runs = 25
+sigmas = [2, 4, 8, 16, 32]
 cut_offs = [1, 2, 4, 8, 16]
 n_steps = [4, 8, 16, 32, 64]
 
+i_sigma_plot = 3
 
 # Arrays for storing compute times and "errors" (not used)
 results_lapl = np.zeros((len(sigmas), len(n_steps), n_runs))
@@ -63,8 +67,6 @@ data_saved = data
 grid_data_save = grid_data
 
 data = data.sel(yu_ocean=lats, xu_ocean=lons)
-print("done")
-
 
 grid_data = grid_data[["dxt", "dyt", "dxu", "dyu", "area_u", "wet"]]
 # Here we need dxt and dyt to be on the velocity grid
@@ -87,14 +89,9 @@ print(grid_data)
 data = data.compute()
 grid_data = grid_data.compute()
 
-data2 = data.fillna(0.0)
 
-
+# CARTESIAN_WITH_LAND and CARTESIAN
 for i_sigma, sigma in enumerate(sigmas):
-    truth = xr.apply_ufunc(
-        lambda x: gaussian_filter(x, sigma=sigma / np.sqrt(12), truncate=32),
-        data2["usurf"],
-    )
     for i_nsteps, n_step in enumerate(n_steps):
         mom5_filterU = filter.Filter(
             sigma,
@@ -104,6 +101,7 @@ for i_sigma, sigma in enumerate(sigmas):
             grid_vars=dict(wet_mask=grid_data["wet"]),
             grid_type=GridType.CARTESIAN_WITH_LAND,
         )
+
         mom5_filterU2 = filter.Filter(
             sigma,
             dx_min=1,
@@ -112,76 +110,92 @@ for i_sigma, sigma in enumerate(sigmas):
             grid_vars=dict(),
             grid_type=GridType.CARTESIAN,
         )
+
         for i_run in range(n_runs):
             t0 = time.process_time()
-            res = mom5_filterU.apply(data["usurf"], ["yu_ocean", "xu_ocean"])
+            data2 = data["usurf"] * grid_data["area_u"]
+            res = mom5_filterU.apply(data2, ["yu_ocean", "xu_ocean"])
+            res /= grid_data["area_u"]
             t1 = time.process_time()
             results_lapl[i_sigma, i_nsteps, i_run] = t1 - t0
-            error_lapl[i_sigma, i_nsteps, i_run] = np.mean(abs(res - truth))
+
             # For cartesian
             t0 = time.process_time()
-            res = mom5_filterU2.apply(data["usurf"], ["yu_ocean", "xu_ocean"])
+            data2 = (data["usurf"] * grid_data["area_u"]).fillna(0.0)
+            res = mom5_filterU2.apply(data2, ["yu_ocean", "xu_ocean"])
+            res /= grid_data["area_u"]
             t1 = time.process_time()
             results_lapl2[i_sigma, i_nsteps, i_run] = t1 - t0
-            error_lapl2[i_sigma, i_nsteps, i_run] = np.mean(abs(res - truth))
+
+# Scipy
 for i_sigma, sigma in enumerate(sigmas):
-    truth = xr.apply_ufunc(
-        lambda x: gaussian_filter(x, sigma=sigma / np.sqrt(12), truncate=32),
-        data2["usurf"],
-    )
     for i_cutoff, cut_off in enumerate(cut_offs):
         for i_run in range(n_runs):
             t2 = time.process_time()
+            data2 = (data["usurf"] * grid_data["area_u"]).fillna(0.0)
             res2 = xr.apply_ufunc(
                 lambda x: gaussian_filter(
                     x, sigma=(sigma / np.sqrt(12)), truncate=cut_off
                 ),
-                data2["usurf"],
+                data2,
             )
+            res2 /= grid_data["area_u"]
             t3 = time.process_time()
             results_scipy[i_sigma, i_cutoff, i_run] = t3 - t2
-            error_scipy[i_sigma, i_cutoff, i_run] = np.mean(abs(res2 - truth))
 
-mom5_filterU = filter.Filter(
-    sigma,
-    dx_min=1,
-    filter_shape=filter.FilterShape.GAUSSIAN,
-    grid_vars=dict(wet_mask=grid_data["wet"]),
-    grid_type=GridType.CARTESIAN_WITH_LAND,
-)
-mom5_filterU2 = filter.Filter(
-    sigma,
-    dx_min=1,
-    filter_shape=filter.FilterShape.GAUSSIAN,
-    grid_vars=dict(),
-    grid_type=GridType.CARTESIAN,
-)
+# With default n_steps
+for i_sigma, sigma in enumerate(sigmas):
+    mom5_filterU = filter.Filter(
+        sigma,
+        dx_min=1,
+        filter_shape=filter.FilterShape.GAUSSIAN,
+        grid_vars=dict(wet_mask=grid_data["wet"]),
+        grid_type=GridType.CARTESIAN_WITH_LAND,
+    )
 
-for i_run in range(n_runs):
-    t0 = time.process_time()
-    res = mom5_filterU.apply(data["usurf"], ["yu_ocean", "xu_ocean"])
-    t1 = time.process_time()
-    results_lapl_d[i_sigma, i_run] = t1 - t0
-    error_lapl_d[i_sigma, i_run] = np.mean(abs(res - truth))
-    # cartesian
-    t0 = time.process_time()
-    res = mom5_filterU2.apply(data["usurf"], ["yu_ocean", "xu_ocean"])
-    t1 = time.process_time()
-    results_lapl2_d[i_sigma, i_run] = t1 - t0
-    error_lapl2_d[i_sigma, i_run] = np.mean(abs(res - truth))
+    mom5_filterU2 = filter.Filter(
+        sigma,
+        dx_min=1,
+        filter_shape=filter.FilterShape.GAUSSIAN,
+        grid_vars=dict(),
+        grid_type=GridType.CARTESIAN,
+    )
+
+    # Record number of steps for the plotted stars in the first plot
+    if i_sigma == i_sigma_plot:
+        n_steps_d = (
+            2 * mom5_filterU.filter_spec.n_bih_steps
+            + mom5_filterU.filter_spec.n_lap_steps
+        )
+
+    for i_run in range(n_runs):
+        t0 = time.process_time()
+        data2 = data["usurf"] * grid_data["area_u"]
+        res = mom5_filterU.apply(data2, ["yu_ocean", "xu_ocean"])
+        res /= grid_data["area_u"]
+        t1 = time.process_time()
+        results_lapl_d[i_sigma, i_run] = t1 - t0
+
+        # cartesian
+        t0 = time.process_time()
+        data2 = (data["usurf"] * grid_data["area_u"]).fillna(0.0)
+        res = mom5_filterU2.apply(data2, ["yu_ocean", "xu_ocean"])
+        res /= grid_data["area_u"]
+        t1 = time.process_time()
+        results_lapl2_d[i_sigma, i_run] = t1 - t0
 
 
-mean_lapl = np.mean(results_lapl[0, ...], axis=-1)
-mean_lapl2 = np.mean(results_lapl2[0, ...], axis=-1)
-mean_scipy = np.mean(results_scipy[0, ...], axis=-1)
-mean_lapl_d = np.mean(results_lapl_d[0, ...], axis=-1)
-mean_lapl2_d = np.mean(results_lapl2_d[0, ...], axis=-1)
+mean_lapl = np.mean(results_lapl[i_sigma_plot, ...], axis=-1)
+mean_lapl2 = np.mean(results_lapl2[i_sigma_plot, ...], axis=-1)
+mean_scipy = np.mean(results_scipy[i_sigma_plot, ...], axis=-1)
+mean_lapl_d = np.mean(results_lapl_d[i_sigma_plot, ...], axis=-1)
+mean_lapl2_d = np.mean(results_lapl2_d[i_sigma_plot, ...], axis=-1)
 
 
-std_lapl = np.std(results_lapl[0, ...], axis=-1)
-std_lapl2 = np.std(results_lapl2[0, ...], axis=-1)
-std_scipy = np.std(results_scipy[0, ...], axis=-1)
-std_lapl_d = np.std(results_lapl_d[0, ...], axis=-1)
+std_lapl = np.std(results_lapl[i_sigma_plot, ...], axis=-1)
+std_lapl2 = np.std(results_lapl2[i_sigma_plot, ...], axis=-1)
+std_scipy = np.std(results_scipy[i_sigma_plot, ...], axis=-1)
+std_lapl_d = np.std(results_lapl_d[i_sigma_plot, ...], axis=-1)
 
 
 plt.plot(range(len(cut_offs)), mean_lapl)
@@ -216,16 +230,34 @@ plt.fill_between(
     alpha=0.3,
 )
 
-n_steps_d = (
-    2 * mom5_filterU.filter_spec.n_bih_steps + mom5_filterU.filter_spec.n_lap_steps
-)
+
 n_steps_d = np.log(n_steps_d) / np.log(2) - np.log(n_steps[0]) / np.log(2)
-plt.plot(n_steps_d, mean_lapl_d, "*", markersize=15)
-plt.plot(n_steps_d, mean_lapl2_d, "*", markersize=15)
+plt.plot(n_steps_d, mean_lapl_d, "*", markersize=15, color=colors[0])
+plt.plot(n_steps_d, mean_lapl2_d, "*", markersize=15, color=colors[1])
 plt.yscale("log")
 
 plt.ylabel("s")
 plt.xlabel("Number of steps / Number of stds for truncation")
 
 plt.savefig("/scratch/ag7531/figure_gcm_filters" + str(sigmas[0]) + ".jpg", dpi=400)
+plt.show()
+
+plt.figure()
+mean_scipy = np.mean(results_scipy[:, 1], axis=-1)
+mean_lapl_d = np.mean(results_lapl_d, axis=-1)
+mean_lapl2_d = np.mean(results_lapl2_d, axis=-1)
+
+plt.plot(range(len(sigmas)), mean_lapl_d)
+plt.plot(range(len(sigmas)), mean_lapl2_d)
+plt.plot(range(len(sigmas)), mean_scipy)
+
+plt.legend(("CARTESIAN_WITH_LAND", "CARTESIAN", "SCIPY"))
+
+plt.xticks(range(len(sigmas)), sigmas)
+plt.xlabel("scale factor")
+plt.ylabel("s")
+
+plt.yscale("log")
+
+plt.savefig("/scratch/ag7531/figure_gcm_filters.jpg", dpi=400)
 plt.show()
