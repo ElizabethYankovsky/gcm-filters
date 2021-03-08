@@ -227,5 +227,5 @@ plt.plot(n_steps_d, mean_lapl2_d, "*", markersize=15)
 plt.ylabel("s")
 plt.xlabel("Number of steps / Number of stds for truncation")
 
-plt.show()
 plt.savefig("/scratch/ag7531/figure_gcm_filters.jpg", dpi=400)
+plt.show()
