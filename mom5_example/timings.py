@@ -227,5 +227,5 @@ plt.yscale("log")
 plt.ylabel("s")
 plt.xlabel("Number of steps / Number of stds for truncation")
 
-plt.savefig("/scratch/ag7531/figure_gcm_filters" + sigmas[0] + ".jpg", dpi=400)
+plt.savefig("/scratch/ag7531/figure_gcm_filters" + str(sigmas[0]) + ".jpg", dpi=400)
 plt.show()
