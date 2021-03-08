@@ -30,7 +30,7 @@ lonsT = slice(-260.0, -170.0)
 
 n_runs = 100
 sigmas = [16]
-cut_offs = [2, 4, 8, 16, 32]
+cut_offs = [1, 2, 4, 8, 16]
 n_steps = [4, 8, 16, 32, 64]
 
 
