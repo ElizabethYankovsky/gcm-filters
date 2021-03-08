@@ -18,12 +18,6 @@ from gcm_filters import filter
 from gcm_filters.kernels import GridType
 
 
-sys.path.append("/home/eay8226/gcm-filters")
-
-
-print(os.getcwd())
-
-
 lats = slice(
     -20.0, 70.0
 )  # interested in 0 to 60 but expanding to alleviate boundary effects
@@ -34,13 +28,13 @@ latsT = slice(-20.0, 70.0)
 lonsT = slice(-260.0, -170.0)
 
 
-n_runs = 25
-sigmas = [
-    16,
-]
+n_runs = 100
+sigmas = [16]
 cut_offs = [2, 4, 8, 16, 32]
 n_steps = [4, 8, 16, 32, 64]
 
+
+# Arrays for storing compute times and "errors" (not used)
 results_lapl = np.zeros((len(sigmas), len(n_steps), n_runs))
 results_lapl2 = np.zeros((len(sigmas), len(n_steps), n_runs))
 results_scipy = np.zeros((len(sigmas), len(cut_offs), n_runs))
@@ -49,6 +43,7 @@ error_lapl = np.zeros((len(sigmas), len(n_steps), n_runs))
 error_lapl2 = np.zeros((len(sigmas), len(n_steps), n_runs))
 error_scipy = np.zeros((len(sigmas), len(cut_offs), n_runs))
 
+# Arrays for storing compute times when using the default n_step
 results_lapl_d = np.zeros((len(sigmas), n_runs))
 error_lapl_d = np.zeros((len(sigmas), n_runs))
 results_lapl2_d = np.zeros((len(sigmas), n_runs))
@@ -56,7 +51,7 @@ error_lapl2_d = np.zeros((len(sigmas), n_runs))
 
 
 data_location = "/scratch/ag7531/shareElizabeth/"
-data_location = "/media/arthur/DATA/Data sets/CM2.6"
+# data_location = "/media/arthur/DATA/Data sets/CM2.6"
 
 grid_filename = "grid_dataforeli"
 uv_filename = "uv_dataforeli"
@@ -233,3 +228,4 @@ plt.ylabel("s")
 plt.xlabel("Number of steps / Number of stds for truncation")
 
 plt.show()
+plt.savefig("/scratch/ag7531/figure_gcm_filters.jpg", dpi=400)
